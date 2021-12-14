@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { css } from "@emotion/css";
 import apiService from "./services/api-service";
-import { FaPlay, FaStop } from "react-icons/fa";
+import { FaPlay, FaStop } from "./components/fa-icons";
 
 const mainStyle = css`
   max-width: 420px;
