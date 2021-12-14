@@ -9,8 +9,15 @@ const updateRequest = (payload: UpdatePayload) =>
 const createRequest = (name: string) =>
   axios.post("/request", { name: name }).then(({ data }) => data);
 
+const getConfig = () => axios.get("/config").then(({ data }) => data);
+
+const toggleAccepting = () =>
+  axios.post("/config/toggle").then(({ data }) => data);
+
 export default {
+  getConfig,
   getRequests,
   updateRequest,
   createRequest,
+  toggleAccepting,
 };

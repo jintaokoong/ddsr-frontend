@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { css } from "@emotion/css";
 import apiService from "./services/api-service";
+import { FaPlay, FaStop } from "react-icons/fa";
 
 const mainStyle = css`
   max-width: 420px;
@@ -11,7 +12,7 @@ const mainStyle = css`
 
 const headerStyle = css`
   margin: 0px;
-  padding: 0.4rem;
+  padding: 10px;
   font-weight: 500;
   color: #004f8f;
   background-color: #90ceff;
@@ -33,33 +34,64 @@ const slicedLabelStyle = css`
 `;
 
 const headerInputStyle = css`
-  box-sizing: border-box;
-  width: 100%;
-  height: 30px;
+  flex: 1;
+  height: 35px;
+  margin-right: 5px;
   border-width: 2px;
   border-color: #004f8f;
   padding: 0 10px;
   border-radius: 3px;
-  max-width: calc(100% - 20px);
-  margin: 10px;
+  :disabled {
+    background-color: lightgray;
+  }
+`;
+
+const buttonStyle = css`
+  border: 0;
+  border-radius: 3px;
+  color: white;
+  min-width: 40px;
+`;
+
+const startButtonStyle = css`
+  ${buttonStyle}
+  background-color: green;
+  :active {
+    background-color: darkgreen;
+  }
+`;
+const stopButtonStyle = css`
+  ${buttonStyle}
+  background-color: red;
+  :active {
+    background-color: darkred;
+  }
 `;
 
 export function App() {
+  const [start, setStart] = useState(false);
   const [grouping, setGrouping] = useState<Record<string, any[]>>({});
   const [name, setName] = useState("");
   useEffect(() => {
     apiService.getRequests().then((gps) => setGrouping(gps));
+    apiService.getConfig().then((data) => setStart(data.accepting === "true"));
+  }, []);
+
+  const buttonOnClick = useCallback(() => {
+    apiService.toggleAccepting().then(() => {
+      setStart((s) => !s);
+    });
   }, []);
 
   const onClickHandler = useCallback(
-    (id: string, value: boolean) => () => {
+    (id: string, value: boolean, key: string) => () => {
       apiService
         .updateRequest({ _id: id, done: value })
-        .then(() => {
-          apiService
-            .getRequests()
-            .then((gps) => setGrouping(gps))
-            .catch((err) => console.error("post-update", err));
+        .then((data) => {
+          setGrouping((gps) => ({
+            ...gps,
+            [key]: gps[key].map((sr) => (sr._id !== id ? sr : data)),
+          }));
         })
         .catch((err) => console.error("update", err));
     },
@@ -68,26 +100,34 @@ export function App() {
 
   return (
     <main className={mainStyle}>
-      <input
-        placeholder={"手動加歌"}
-        className={headerInputStyle}
-        value={name}
-        onInput={(e) => setName(e.currentTarget.value)}
-        onKeyPress={(e) => {
-          if (e.key !== "Enter") {
-            return;
-          }
-          apiService
-            .createRequest(name)
-            .then(() =>
-              apiService.getRequests().then((gps) => setGrouping(gps))
-            )
-            .catch((err) => console.error("post-create", err));
-          setName("");
-
-          // do api call
-        }}
-      />
+      <div style={{ display: "flex", padding: 10 }}>
+        <input
+          className={headerInputStyle}
+          placeholder={"手動加歌"}
+          value={name}
+          disabled={!start}
+          onInput={(e) => setName(e.currentTarget.value)}
+          onKeyPress={(e) => {
+            if (e.key !== "Enter") {
+              return;
+            }
+            apiService
+              .createRequest(name)
+              .then(() =>
+                apiService.getRequests().then((gps) => setGrouping(gps))
+              )
+              .catch((err) => console.error("post-create", err));
+            setName("");
+          }}
+        />
+        <button
+          className={!start ? startButtonStyle : stopButtonStyle}
+          type={"button"}
+          onClick={buttonOnClick}
+        >
+          {!start ? <FaPlay /> : <FaStop />}
+        </button>
+      </div>
       {Object.keys(grouping).map((k) => (
         <div key={k}>
           <h4 className={headerStyle}>{k}</h4>
@@ -97,7 +137,7 @@ export function App() {
                 <input
                   type={"checkbox"}
                   checked={rq.done}
-                  onClick={onClickHandler(rq._id, !rq.done)}
+                  onClick={onClickHandler(rq._id, !rq.done, k)}
                 />
                 <span className={rq.done ? slicedLabelStyle : labelStyle}>
                   {rq.name}
