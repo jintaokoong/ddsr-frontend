@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "rm -rf ./dist && tsc && vite build",
+    "clean": "rm -rf ./dist",
+    "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
