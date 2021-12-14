@@ -12,7 +12,7 @@ const mainStyle = css`
 
 const headerStyle = css`
   margin: 0px;
-  padding: 0.4rem;
+  padding: 10px;
   font-weight: 500;
   color: #004f8f;
   background-color: #90ceff;
@@ -41,6 +41,9 @@ const headerInputStyle = css`
   border-color: #004f8f;
   padding: 0 10px;
   border-radius: 3px;
+  :disabled {
+    background-color: lightgray;
+  }
 `;
 
 const buttonStyle = css`
@@ -71,17 +74,24 @@ export function App() {
   const [name, setName] = useState("");
   useEffect(() => {
     apiService.getRequests().then((gps) => setGrouping(gps));
+    apiService.getConfig().then((data) => setStart(data.accepting === "true"));
+  }, []);
+
+  const buttonOnClick = useCallback(() => {
+    apiService.toggleAccepting().then(() => {
+      setStart((s) => !s);
+    });
   }, []);
 
   const onClickHandler = useCallback(
-    (id: string, value: boolean) => () => {
+    (id: string, value: boolean, key: string) => () => {
       apiService
         .updateRequest({ _id: id, done: value })
-        .then(() => {
-          apiService
-            .getRequests()
-            .then((gps) => setGrouping(gps))
-            .catch((err) => console.error("post-update", err));
+        .then((data) => {
+          setGrouping((gps) => ({
+            ...gps,
+            [key]: gps[key].map((sr) => (sr._id !== id ? sr : data)),
+          }));
         })
         .catch((err) => console.error("update", err));
     },
@@ -95,6 +105,7 @@ export function App() {
           className={headerInputStyle}
           placeholder={"手動加歌"}
           value={name}
+          disabled={!start}
           onInput={(e) => setName(e.currentTarget.value)}
           onKeyPress={(e) => {
             if (e.key !== "Enter") {
@@ -112,7 +123,7 @@ export function App() {
         <button
           className={!start ? startButtonStyle : stopButtonStyle}
           type={"button"}
-          onClick={() => setStart((s) => !s)}
+          onClick={buttonOnClick}
         >
           {!start ? <FaPlay /> : <FaStop />}
         </button>
@@ -126,7 +137,7 @@ export function App() {
                 <input
                   type={"checkbox"}
                   checked={rq.done}
-                  onClick={onClickHandler(rq._id, !rq.done)}
+                  onClick={onClickHandler(rq._id, !rq.done, k)}
                 />
                 <span className={rq.done ? slicedLabelStyle : labelStyle}>
                   {rq.name}
