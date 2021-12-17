@@ -73,8 +73,14 @@ export function App() {
   const [grouping, setGrouping] = useState<Record<string, any[]>>({});
   const [name, setName] = useState("");
   useEffect(() => {
+    window.onfocus = () => {
+      apiService.getRequests().then((gps) => setGrouping(gps));
+    };
     apiService.getRequests().then((gps) => setGrouping(gps));
     apiService.getConfig().then((data) => setStart(data.accepting === "true"));
+    return () => {
+      window.onfocus = () => {};
+    };
   }, []);
 
   const buttonOnClick = useCallback(() => {
